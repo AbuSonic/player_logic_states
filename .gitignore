@@ -1,0 +1,6 @@
+/.dist
+/.vscode
+/DragonHead.v
+/dragonStateOutput.txt
+/dragon_tb.vcd
+/dragon_tb.vvp

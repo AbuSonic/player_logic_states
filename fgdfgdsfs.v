@@ -42,23 +42,6 @@ module tt_um_vga_example (
     reg [1:0] current_state;
     reg [1:0] next_state;
 
-    reg [7:0] dragon_pos;
-    reg [1:0] dragon_direction;
-    reg [3:0] dragon_sprite;
-    reg [3:0] player_y;
-    reg [3:0] player_x;
-    reg [3:0] dragon_x;
-    reg [3:0] dragon_y;
-    reg [3:0] next_x;
-    reg [3:0] next_y;
-    reg [7:0] NextLocation;
-    reg [3:0] dx;
-    reg [3:0] dy;
-    reg [3:0] sx;
-    reg [3:0] sy;
-
-
-
     // State definitions
     localparam IDLE_STATE   = 2'b00;  // Move when there is input from the controller
     localparam ATTACK_STATE = 2'b01;  // Sword appears where the player is facing
@@ -86,7 +69,7 @@ module tt_um_vga_example (
     .entity_2                ({sword_visible, sword_orientation, sword_pos}), //sword
     .entity_3                (14'b0100_11_0101_0000),
     .entity_4                (14'b0100_11_0110_0000),
-    .entity_5                ({dragon_sprite, dragon_direction,dragon_pos}),
+    .entity_5                (14'b0110_11_0100_0000),
     .entity_6                (14'b1111_11_1111_1111),
     .entity_7_Array          (18'b0000_01_1010_0000_0111 ),
     .entity_8_Flip           (14'b1111_11_1111_1111),
@@ -133,18 +116,10 @@ module tt_um_vga_example (
     
     initial begin
         player_sprite <= 4'b0010;
-
-        dragon_sprite <= 4'b0110;
-        
         current_state <= 0;
         player_orientation <= 2'b01;
         player_direction <= 2'b01;
         player_pos <= 8'b0001_0001;
-
-        dragon_direction <= 2'b01;
-        dragon_pos <= 8'b0001_0000;
-
-
         sword_visible <= 4'b1111; 
         sword_duration <= 0;
     end
@@ -244,40 +219,6 @@ module tt_um_vga_example (
             end
         endcase
     end
-
-
-    always@(posedge vsync ) begin
-    
-    // always follow player 
-
-
-            // Extract target X and Y coordinates
-            player_y = player_pos[3:0];
-            player_x = player_pos[7:4];
-
-            // Calculate the differences between target and current positions
-            dx = (player_x > dragon_x) ? (player_x - dragon_x) : (dragon_x - player_x);
-            dy = (player_y > dragon_y) ? (player_y - dragon_y) : (dragon_y - player_y);
-            sx = (dragon_x < player_x) ? 1 : -1;
-            sy = (dragon_y < player_y) ? 1 : -1;
-
-            // Movement based on which axis is closer (larger difference)
-            if (dx >= dy) begin
-                // Move in the X direction
-                next_x = dragon_x + sx;
-                next_y = dragon_y;  // No change in Y
-            end else begin
-                // Move in the Y direction
-                next_x = dragon_x;  // No change in X
-                next_y = dragon_y + sy;
-            end
-
-            // Combine next X and Y coordinates into the next location
-            NextLocation = {next_x, next_y};
-            dragon_pos = NextLocation;
-
-    end
-
 
 
     always @(posedge clk) begin

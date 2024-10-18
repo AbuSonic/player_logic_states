@@ -276,6 +276,10 @@ module tt_um_vga_example (
             NextLocation = {next_x, next_y};
             dragon_pos = NextLocation;
 
+    // Update dragon's X and Y coordinates
+    dragon_x = next_x;
+    dragon_y = next_y;
+
     end
 
 

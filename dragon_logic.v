@@ -246,41 +246,53 @@ module tt_um_vga_example (
     end
 
 
-    always@(posedge vsync ) begin
-    
-    // always follow player 
 
+reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement
 
-            // Extract target X and Y coordinates
-            player_y = player_pos[3:0];
-            player_x = player_pos[7:4];
+always@(posedge vsync) begin
+    // Delay the movement to make it slower
+    if (movement_counter < 6'd20) begin
+        movement_counter <= movement_counter + 1;
+    end else begin
+        movement_counter <= 0;  // Reset counter after reaching limit
 
-            // Calculate the differences between target and current positions
-            dx = (player_x > dragon_x) ? (player_x - dragon_x) : (dragon_x - player_x);
-            dy = (player_y > dragon_y) ? (player_y - dragon_y) : (dragon_y - player_y);
-            sx = (dragon_x < player_x) ? 1 : -1;
-            sy = (dragon_y < player_y) ? 1 : -1;
+        // Follow the player
+        player_y = player_pos[3:0];
+        player_x = player_pos[7:4];
 
-            // Movement based on which axis is closer (larger difference)
-            if (dx >= dy) begin
-                // Move in the X direction
-                next_x = dragon_x + sx;
-                next_y = dragon_y;  // No change in Y
-            end else begin
-                // Move in the Y direction
-                next_x = dragon_x;  // No change in X
-                next_y = dragon_y + sy;
-            end
+        // Calculate the differences between dragon and player
+        dx = (player_x > dragon_x) ? (player_x - dragon_x) : (dragon_x - player_x);
+        dy = (player_y > dragon_y) ? (player_y - dragon_y) : (dragon_y - player_y);
+        sx = (dragon_x < player_x) ? 1 : -1;  // Direction for x-axis
+        sy = (dragon_y < player_y) ? 1 : -1;  // Direction for y-axis
 
-            // Combine next X and Y coordinates into the next location
-            NextLocation = {next_x, next_y};
-            dragon_pos = NextLocation;
+        // Move based on the larger difference (to create the step-wise motion)
+        if (dx >= dy) begin
+            // Move along the X-axis
+            next_x = dragon_x + sx;
+            next_y = dragon_y;  // No change in Y
+        end else begin
+            // Move along the Y-axis
+            next_x = dragon_x;  // No change in X
+            next_y = dragon_y + sy;
+        end
 
-    // Update dragon's X and Y coordinates
-    dragon_x = next_x;
-    dragon_y = next_y;
+        // Boundary conditions for dragon's movement
+        if (next_x > 4'b1111) next_x = 4'b1111;  // Limit max x-axis
+        else if (next_x < 4'b0000) next_x = 4'b0000;  // Limit min x-axis
 
+        if (next_y > 4'b1111) next_y = 4'b1111;  // Limit max y-axis
+        else if (next_y < 4'b0000) next_y = 4'b0000;  // Limit min y-axis
+
+        // Update dragon position
+        dragon_x = next_x;
+        dragon_y = next_y;
+
+        // Send the updated position to the output location
+        NextLocation = {dragon_x, dragon_y};
+        dragon_pos = NextLocation;
     end
+end
 
 
 

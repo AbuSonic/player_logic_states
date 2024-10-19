@@ -255,13 +255,13 @@ function [1:0] NextDirection;
         target_y = target_location[3:0];
 
         // Determine direction based on movement
-        if (new_x > last_x)
+        if (target_x > current_x)
             NextDirection = 2'b01;   // Move right
-        else if (new_x < last_x)
+        else if (target_x < current_x)
             NextDirection = 2'b11;   // Move left
-        else if (new_y > last_y)
+        else if (target_y > current_y)
             NextDirection = 2'b10;   // Move down
-        else if (new_y < last_y)
+        else if (target_y < current_y)
             NextDirection = 2'b00;   // Move up
     end
 endfunction
@@ -281,25 +281,25 @@ reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement other
 // Movement logic , uses bresenhams line algorithm
 always @(posedge vsync) begin
     if (movement_counter < 6'd20) begin
-        movement_counter <= movement_counter + 1;
+        movement_counter <= movement_counter + 5;
     end else begin
         movement_counter <= 0;
 
         // Store the current position before updating , used later
-        dragon_pos <= NextLocation;
+        dragon_pos <= target_location;
 
         // Follow the player
         player_y = player_pos[3:0];
         player_x = player_pos[7:4];
 
         // Calculate the differences between dragon and player
-        dx = player_x - dragon_x ;
-        dy = player_y - dragon_y ;
-        sx = (dragon_x< player_x) ? 1 : -1; // Direction in axis
-        sy = (dragon_y< player_y) ? 1 : -1; 
+        dx <= player_pos[7:4] - dragon_x ;
+        dy <= player_pos[3:0] - dragon_y ;
+        sx <= (dragon_x< player_pos[7:4]) ? 1 : -1; // Direction in axis
+        sy <= (dragon_y< player_pos[3:0]) ? 1 : -1; 
 
         // Move the dragon towards the player if it's not adjacent
-        if (dx > 1 || dy > 1) begin
+        if (dx >= 1 || dy >= 1) begin
             if (dx >= dy) begin //prioritize movement
                 
                 next_x = dragon_x + sx;

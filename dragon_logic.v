@@ -310,12 +310,7 @@ always @(posedge vsync) begin
                 next_y = dragon_y + sy;
             end
 
-            // Boundary conditions for dragon's movement
-            if (next_x > 4'b1111) next_x = 4'b1111;  // Limit max x-axis
-            else if (next_x < 4'b0000) next_x = 4'b0000;  // Limit min x-axis
 
-            if (next_y > 4'b1111) next_y = 4'b1111;  // Limit max y-axis
-            else if (next_y < 4'b0000) next_y = 4'b0000;  // Limit min y-axis
 
             // Update dragon position only if it actually moves
             if (next_x != dragon_x || next_y != dragon_y) begin

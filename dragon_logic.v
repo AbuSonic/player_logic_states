@@ -250,7 +250,10 @@ function [1:0] NextDirection;
     input [7:0] _lastLocation;
     input [7:0] _newLocation;
 
-    reg [3:0] last_x, last_y, new_x, new_y;
+    reg [3:0] last_x; 
+    reg [3:0] last_y;
+    reg [3:0] new_x; 
+    reg [3:0] new_y;
 
     begin
         // Extract last and new X and Y coordinates
@@ -272,7 +275,7 @@ function [1:0] NextDirection;
 endfunction
 
 
-reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement
+reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement otherwise sticks to player
 
 
 
@@ -291,8 +294,8 @@ always @(posedge vsync) begin
         player_x = player_pos[7:4];
 
         // Calculate the differences between dragon and player
-        dx = player_x > dragon_x ? player_x - dragon_x : dragon_x - player_x ; // Difference in X
-        dy = player_y > dragon_y ? player_y - dragon_y : dragon_y - player_y ; // Difference in X
+        dx = player_x > dragon_x ? player_x - dragon_x : dragon_x - player_x ; // Absolute difference in X
+        dy = player_y > dragon_y ? player_y - dragon_y : dragon_y - player_y ; // ABsolute difference in X
         sx = (dx > 0) ? 1 : (dx < 0) ? -1 : 0; // Direction for x-axis
         sy = (dy > 0) ? 1 : (dy < 0) ? -1 : 0; // Direction for y-axis
 
@@ -327,11 +330,11 @@ always @(posedge vsync) begin
                 NextLocation <= {next_x, next_y};
             end
         end else begin
-            // If the dragon is adjacent to the player, stop moving
+            // stop moving whne the dragon is adjacent to the player 
             next_x = dragon_x; // Stay in current X
             next_y = dragon_y; // Stay in current Y
         end
-    end
+end
 end
 
 

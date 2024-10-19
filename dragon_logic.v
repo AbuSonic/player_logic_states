@@ -286,49 +286,51 @@ always @(posedge vsync) begin
         // Store the current position before updating
         dragon_pos <= NextLocation;
 
-        // Update the dragon position here
         // Follow the player
         player_y = player_pos[3:0];
         player_x = player_pos[7:4];
 
         // Calculate the differences between dragon and player
-        dx = (player_x > dragon_x) ? (player_x - dragon_x) : (dragon_x - player_x);
-        dy = (player_y > dragon_y) ? (player_y - dragon_y) : (dragon_y - player_y);
-        sx = (dragon_x < player_x) ? 1 : -1;  // Direction for x-axis
-        sy = (dragon_y < player_y) ? 1 : -1;  // Direction for y-axis
+        dx = player_x - dragon_x; // Difference in X
+        dy = player_y - dragon_y; // Difference in Y
+        sx = (dx > 0) ? 1 : (dx < 0) ? -1 : 0; // Direction for x-axis
+        sy = (dy > 0) ? 1 : (dy < 0) ? -1 : 0; // Direction for y-axis
 
-        // Move based on the larger difference (to create the step-wise motion)
-        if (dx >= dy) begin
-            // Move along the X-axis
-            next_x = dragon_x + sx;
-            next_y = dragon_y;  // No change in Y
+        // Move the dragon towards the player if it's not adjacent
+        if (dx > 1 || dy > 1) begin
+            if (dx >= dy) begin
+                // Move along the X-axis first
+                next_x = dragon_x + sx; // Move towards player
+                next_y = dragon_y; // No change in Y
+            end else begin
+                // Move along the Y-axis first
+                next_x = dragon_x; // No change in X
+                next_y = dragon_y + sy; // Move towards player
+            end
+
+            // Boundary conditions for dragon's movement
+            if (next_x > 4'b1111) next_x = 4'b1111;  // Limit max x-axis
+            else if (next_x < 4'b0000) next_x = 4'b0000;  // Limit min x-axis
+
+            if (next_y > 4'b1111) next_y = 4'b1111;  // Limit max y-axis
+            else if (next_y < 4'b0000) next_y = 4'b0000;  // Limit min y-axis
+
+            // Update dragon position only if it actually moves
+            if (next_x != dragon_x || next_y != dragon_y) begin
+                dragon_x = next_x;
+                dragon_y = next_y;
+
+                // Determine next direction only if it moved
+                dragon_direction <= NextDirection(dragon_pos, {next_x, next_y});
+
+                // Update the next location
+                NextLocation <= {next_x, next_y};
+            end
         end else begin
-            // Move along the Y-axis
-            next_x = dragon_x;  // No change in X
-            next_y = dragon_y + sy;
+            // If the dragon is adjacent to the player, stop moving
+            next_x = dragon_x; // Stay in current X
+            next_y = dragon_y; // Stay in current Y
         end
-
-        // Boundary conditions for dragon's movement
-        if (next_x > 4'b1111) next_x = 4'b1111;  // Limit max x-axis
-        else if (next_x < 4'b0000) next_x = 4'b0000;  // Limit min x-axis
-
-        if (next_y > 4'b1111) next_y = 4'b1111;  // Limit max y-axis
-        else if (next_y < 4'b0000) next_y = 4'b0000;  // Limit min y-axis
-
-        // Update dragon position
-        dragon_x = next_x;
-        dragon_y = next_y;
-
-
-        // Determine next position (next_pos)
-        next_dragon_pos <= {next_x, next_y};
-
-        // Call the NextDirection function to determine the direction
-        dragon_direction <= NextDirection(dragon_pos, next_dragon_pos);
-
-        // Update the dragon's position and direction
-        dragon_pos <= next_dragon_pos;
-        NextLocation <= next_dragon_pos;
     end
 end
 

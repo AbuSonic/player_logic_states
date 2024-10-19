@@ -291,8 +291,8 @@ always @(posedge vsync) begin
         player_x = player_pos[7:4];
 
         // Calculate the differences between dragon and player
-        dx = player_x - dragon_x; // Difference in X
-        dy = player_y - dragon_y; // Difference in Y
+        dx = player_x > dragon_x ? player_x - dragon_x : dragon_x - player_x ; // Difference in X
+        dy = player_y > dragon_y ? player_y - dragon_y : dragon_y - player_y ; // Difference in X
         sx = (dx > 0) ? 1 : (dx < 0) ? -1 : 0; // Direction for x-axis
         sy = (dy > 0) ? 1 : (dy < 0) ? -1 : 0; // Direction for y-axis
 

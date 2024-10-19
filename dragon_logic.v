@@ -57,6 +57,7 @@ module tt_um_vga_example (
     reg [3:0] sx;
     reg [3:0] sy;
 
+    reg [7:0] next_dragon_pos;
 
 
     // State definitions
@@ -245,17 +246,47 @@ module tt_um_vga_example (
         endcase
     end
 
+function [1:0] NextDirection;
+    input [7:0] _lastLocation;
+    input [7:0] _newLocation;
+
+    reg [3:0] last_x, last_y, new_x, new_y;
+
+    begin
+        // Extract last and new X and Y coordinates
+        last_x = _lastLocation[7:4];
+        last_y = _lastLocation[3:0];
+        new_x = _newLocation[7:4];
+        new_y = _newLocation[3:0];
+
+        // Determine direction based on movement
+        if (new_x > last_x)
+            NextDirection = 2'b01;   // Move right
+        else if (new_x < last_x)
+            NextDirection = 2'b11;   // Move left
+        else if (new_y > last_y)
+            NextDirection = 2'b10;   // Move down
+        else if (new_y < last_y)
+            NextDirection = 2'b00;   // Move up
+    end
+endfunction
 
 
 reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement
 
-always@(posedge vsync) begin
-    // Delay the movement to make it slower
+
+
+// Movement logic
+always @(posedge vsync) begin
     if (movement_counter < 6'd20) begin
         movement_counter <= movement_counter + 1;
     end else begin
-        movement_counter <= 0;  // Reset counter after reaching limit
+        movement_counter <= 0;
 
+        // Store the current position before updating
+        dragon_pos <= NextLocation;
+
+        // Update the dragon position here
         // Follow the player
         player_y = player_pos[3:0];
         player_x = player_pos[7:4];
@@ -288,9 +319,16 @@ always@(posedge vsync) begin
         dragon_x = next_x;
         dragon_y = next_y;
 
-        // Send the updated position to the output location
-        NextLocation = {dragon_x, dragon_y};
-        dragon_pos = NextLocation;
+
+        // Determine next position (next_pos)
+        next_dragon_pos <= {next_x, next_y};
+
+        // Call the NextDirection function to determine the direction
+        dragon_direction <= NextDirection(dragon_pos, next_dragon_pos);
+
+        // Update the dragon's position and direction
+        dragon_pos <= next_dragon_pos;
+        NextLocation <= next_dragon_pos;
     end
 end
 

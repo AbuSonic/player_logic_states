@@ -135,7 +135,7 @@ module tt_um_vga_example (
         player_pos <= 8'b0001_0001;
 
         dragon_direction <= 2'b01;
-        dragon_pos <= 8'b0001_0000;
+        dragon_pos <= 8'b0100_0000;
 
 
         sword_visible <= 4'b1111; 
@@ -239,20 +239,20 @@ module tt_um_vga_example (
     end
 
 function [1:0] NextDirection;
-    input [7:0] _lastLocation;
-    input [7:0] _newLocation;
+    input [7:0] current_location;
+    input [7:0] target_location;
 
-    reg [3:0] last_x; 
-    reg [3:0] last_y;
-    reg [3:0] new_x; 
-    reg [3:0] new_y;
+    reg [3:0] current_x; 
+    reg [3:0] current_y;
+    reg [3:0] target_x; 
+    reg [3:0] target_y;
 
     begin
         // Extract last and new X and Y coordinates
-        last_x = _lastLocation[7:4];
-        last_y = _lastLocation[3:0];
-        new_x = _newLocation[7:4];
-        new_y = _newLocation[3:0];
+        current_x = current_location[7:4];
+        current_y = current_location[3:0];
+        target_x = target_location[7:4];
+        target_y = target_location[3:0];
 
         // Determine direction based on movement
         if (new_x > last_x)
@@ -269,10 +269,10 @@ endfunction
 
 reg [3:0] next_x;
 reg [3:0] next_y;
-reg [7:0] NextLocation;
+reg [7:0] target_location;
 reg [3:0] dx; //difference
 reg [3:0] dy;
-reg [3:0] sx; //figuring out direction
+reg [3:0] sx; //figuring out direction in axis
 reg [3:0] sy;
 reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement otherwise sticks to player
 
@@ -295,24 +295,24 @@ always @(posedge vsync) begin
         // Calculate the differences between dragon and player
         dx = player_x - dragon_x ;
         dy = player_y - dragon_y ;
-        sx = (dragon_x< player_x) ? 1 : -1; // Direction for x-axis
-        sy = (dragon_y< player_y) ? 1 : -1; // Direction for y-axis
+        sx = (dragon_x< player_x) ? 1 : -1; // Direction in axis
+        sy = (dragon_y< player_y) ? 1 : -1; 
 
         // Move the dragon towards the player if it's not adjacent
         if (dx > 1 || dy > 1) begin
-            if (dx >= dy) begin
-                // Move along the X-axis first
+            if (dx >= dy) begin //prioritize movement
+                
                 next_x = dragon_x + sx;
                 next_y = dragon_y;
             end else begin
-                // Move along the Y-axis first
+                
                 next_x = dragon_x;
                 next_y = dragon_y + sy;
             end
 
 
 
-            // Update dragon position only if it actually moves
+            // Update dragon position only if it actually moves , keeps flickering
             if (next_x != dragon_x || next_y != dragon_y) begin
                 dragon_x = next_x;
                 dragon_y = next_y;
@@ -320,7 +320,7 @@ always @(posedge vsync) begin
                 dragon_direction <= NextDirection(dragon_pos, {next_x, next_y});
 
                 // Update the next location
-                NextLocation <= {next_x, next_y};
+                target_location <= {next_x, next_y};
             end
         end else begin
             // stop moving whne the dragon is adjacent to the player 

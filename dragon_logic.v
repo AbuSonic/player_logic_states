@@ -57,7 +57,6 @@ module tt_um_vga_example (
     reg [3:0] sx;
     reg [3:0] sy;
 
-    reg [7:0] next_dragon_pos;
 
 
     // State definitions

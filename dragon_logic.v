@@ -281,7 +281,7 @@ reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement other
 // Movement logic , uses bresenhams line algorithm
 always @(posedge vsync) begin
     if (movement_counter < 6'd20) begin
-        movement_counter <= movement_counter + 5;
+        movement_counter <= movement_counter + 1;
     end else begin
         movement_counter <= 0;
 

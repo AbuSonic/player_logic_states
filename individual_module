@@ -16,7 +16,7 @@ module DragonHead (
     input clk,
     input reset,
     input player_pos,
-    input dragon_pos_local,
+    input dragon_pos,
 );
 
    

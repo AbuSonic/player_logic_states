@@ -1,0 +1,197 @@
+/*
+Project: TinyTapeStation
+Engineer(s) : Abdulatif Babli, James Ashie Kotey, Anubhav Avinash
+Module: Dragon Movement Logic
+Create Date: 26/08/2024
+*/
+
+// Define Behaviour States
+
+module DragonHead (
+    input wire         frame_clk,
+    input wire         rst,
+
+    input wire  [7:0]  player_location,
+    input wire  [7:0]  sheep_location,
+
+    input wire  [7:0]  dragon_head_location,
+    input wire  [1:0]  dragon_head_direction,
+    input wire  [3:0]  dragon_body_length,
+
+    output reg  [7:0]  next_dragon_head_location,
+    output reg  [1:0]  next_dragon_head_direction,
+    output reg  [3:0]  next_dragon_body_length,
+    output reg  [1:0]  current_state
+);
+
+    // State register
+    reg reset_state;
+
+    // State definitions
+    localparam CONTEST_STATE = 2'b00;  // Target the closest entity (player/sheep)
+    localparam RETREAT_STATE = 2'b01;  // Move far away from the player, target corner tile.
+    localparam SCATTER_STATE = 2'b10;  // Target a random tile in the play area
+    localparam DEAD          = 2'b11;  // End game - player wins
+
+    // Direction definitions
+    localparam UP     = 2'b00; 
+    localparam RIGHT  = 2'b01; 
+    localparam DOWN   = 2'b10; 
+    localparam LEFT   = 2'b11;
+
+    // Gameplay flags
+    reg dragon_contest;
+    reg dragon_hurt;
+    reg dragon_win;
+    reg sheep_respawn;
+    reg target_tile;
+    reg game_over;
+
+    reg [7:0] timer;
+    reg       timeout;
+
+    // Timer logic
+    always @(posedge frame_clk or posedge rst) begin
+        if (rst) begin
+            timer <= 8'b0;
+        end else if (timeout) begin
+            timer <= 8'b0;
+        end else begin
+            timer <= timer + 1;
+        end
+    end    
+
+    // Function: SelectTarget
+    function [7:0] SelectTarget;   
+        input [7:0] _playerLocation;
+        input [7:0] _sheepLocation;
+        input [1:0] _currentState;
+
+        reg [3:0] player_x, player_y;
+        reg [3:0] dragon_head_x, dragon_head_y;
+        reg [3:0] sheep_x, sheep_y;
+        reg [9:0] distance_dragon_sheep, distance_dragon_player;
+
+        begin
+            // Extract coordinates for player, sheep, and dragon
+            dragon_head_x = dragon_head_location[7:4]; 
+            dragon_head_y = dragon_head_location[3:0];
+            sheep_x = _sheepLocation[7:4]; 
+            sheep_y = _sheepLocation[3:0];
+            player_x = _playerLocation[7:4];
+            player_y = _playerLocation[3:0];
+
+            // Calculate Manhattan distances
+            distance_dragon_sheep = (dragon_head_x > sheep_x) ? (dragon_head_x - sheep_x) : (sheep_x - dragon_head_x);
+            distance_dragon_sheep = distance_dragon_sheep + ((dragon_head_y > sheep_y) ? (dragon_head_y - sheep_y) : (sheep_y - dragon_head_y));
+            distance_dragon_player = (dragon_head_x > player_x) ? (dragon_head_x - player_x) : (player_x - dragon_head_x);
+            distance_dragon_player = distance_dragon_player + ((dragon_head_y > player_y) ? (dragon_head_y - player_y) : (player_y - dragon_head_y));
+
+            // Choose target based on state
+            if (_currentState == CONTEST_STATE) begin
+                if (distance_dragon_player < distance_dragon_sheep)
+                    SelectTarget = _playerLocation;
+                else
+                    SelectTarget = _sheepLocation;
+            end else begin
+                SelectTarget = _sheepLocation;
+            end
+        end
+    endfunction
+
+    // Function: NextLocation
+    function [7:0] NextLocation;
+        input [7:0] current_location;
+        input [7:0] target_tile;
+
+        reg signed [3:0] dx, dy;
+        reg [3:0] next_x, next_y, current_x, current_y, sx, sy;
+        reg target_x, target_y;
+
+        begin
+            current_y = current_location[3:0];
+            current_x = current_location[7:4];
+            target_y = target_tile[3:0];
+            target_x = target_tile[7:4];
+
+            dx = (target_x > current_x) ? (target_x - current_x) : (current_x - target_x);
+            dy = (target_y > current_y) ? (target_y - current_y) : (current_y - target_y);
+            sx = (current_x < target_x) ? 1 : -1;
+            sy = (current_y < target_y) ? 1 : -1;
+
+            if (dx >= dy) begin
+                next_x = current_x + sx;
+                next_y = current_y;
+            end else begin
+                next_x = current_x;
+                next_y = current_y + sy;
+            end
+
+            NextLocation = {next_x, next_y};
+        end
+    endfunction
+
+    // Function: NextDirection
+    function [1:0] NextDirection;   
+        input [7:0] _lastLocation;
+        input [7:0] _newLocation;
+
+        reg [3:0] last_x, last_y, new_x, new_y;
+
+        begin
+            last_x = _lastLocation[7:4];
+            last_y = _lastLocation[3:0];
+            new_x = _newLocation[7:4];
+            new_y = _newLocation[3:0];
+
+            if (new_x > last_x)
+                NextDirection = RIGHT;
+            else if (new_x < last_x)
+                NextDirection = LEFT;
+            else if (new_y > last_y)
+                NextDirection = DOWN;
+            else
+                NextDirection = UP;
+        end
+    endfunction
+
+    // Main state machine and logic
+    always @(posedge frame_clk or posedge rst) begin
+        if (rst) begin
+            current_state <= CONTEST_STATE;
+        end else begin
+            case (current_state)
+                CONTEST_STATE: begin
+                    target_tile = SelectTarget(player_location, sheep_location, CONTEST_STATE);
+                    next_dragon_head_location <= NextLocation(dragon_head_location, target_tile);
+                    next_dragon_head_direction <= NextDirection(dragon_head_location, next_dragon_head_location);
+                    if (dragon_win) begin
+                        current_state <= SCATTER_STATE;
+                    end else if (dragon_hurt) begin
+                        current_state <= RETREAT_STATE;
+                    end
+                end
+
+                RETREAT_STATE: begin
+                    target_tile = SelectTarget(player_location, sheep_location, RETREAT_STATE);
+                    next_dragon_head_location <= NextLocation(dragon_head_location, target_tile);
+                    next_dragon_head_direction <= NextDirection(dragon_head_location, next_dragon_head_location);
+                    if (next_dragon_head_location == target_tile)
+                        current_state <= CONTEST_STATE;
+                end
+
+                SCATTER_STATE: begin
+                    target_tile = SelectTarget(player_location, sheep_location, SCATTER_STATE);
+                    next_dragon_head_location <= NextLocation(dragon_head_location, target_tile);
+                    next_dragon_head_direction <= NextDirection(dragon_head_location, next_dragon_head_location);
+                    if (next_dragon_head_location == target_tile)
+                        current_state <= CONTEST_STATE;
+                end
+
+                DEAD: begin
+                    game_over <= 1;
+                end
+            endcase
+        end
+    end
+endmodule

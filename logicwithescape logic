@@ -1,0 +1,213 @@
+/*
+ * Copyright (c) 2024 Tiny Tapeout LTD
+ * SPDX-License-Identifier: Apache-2.0
+ * Author: Uri Shaked
+ */
+
+
+`define COLOR_WHITE 3'd7
+`timescale 1ms/1ms
+
+// top module
+
+//TT Pinout (standard for TT projects - can't change this)
+
+module DragonHead ( 
+    input clk
+
+    
+);
+
+   
+reg dragon_pos;
+
+reg [1:0] dragon_direction;
+reg [3:0] dragon_sprite;
+reg [3:0] player_y;
+reg [3:0] dragon_y;
+
+
+reg [3:0] next_x;
+reg [3:0] next_y;
+reg [7:0] target_location;
+reg [3:0] dx; //difference
+reg [3:0] dy;
+reg [3:0] sx; //figuring out direction in axis
+reg [3:0] sy;
+reg [5:0] movement_counter = 0;  // Counter for delaying dragon's movement otherwise sticks to player
+reg [1:0] NextDirection;
+
+reg [3:0] dragon_head_x;
+reg [3:0] dragon_head_y;
+//reg [3:0] player_pos[7:4][3:0] player_y;
+reg [3:0] sheep_x;
+reg [3:0] sheep_y;
+reg [3:0] distance_dragon_sheep_x;
+reg [3:0] distance_dragon_sheep_y;
+reg [3:0] distance_dragon_player_x;
+reg [3:0] distance_dragon_player_y;
+reg [4:0] distance_dragon_sheep;
+reg [4:0] distance_dragon_player;
+reg [1:0] random_corner ;
+
+reg [1:0] current_state;
+
+localparam CONTEST_STATE = 2'b00; 
+localparam RETREAT_STATE = 2'b01; 
+localparam SCATTER_STATE = 2'b10;
+
+reg [7:0] SelectTarget; // Target location based on state
+reg [7:0] player_pos;
+reg [7:0] sheep_pos;
+reg [1:0] next_state;
+
+input States;
+
+    always @(posedge frame_end) begin
+        current_state <= next_state;      // Update state
+
+    end
+
+
+// Movement logic , uses bresenhams line algorithm
+always @(posedge clk) begin
+    if (movement_counter < 6'd10) begin
+        movement_counter <= movement_counter + 1;
+    end else begin
+        movement_counter <= 0;
+
+ // Update player and sheep locations for the FSM
+
+
+    // Check the current States and choose the corresponding case
+    if (States == 2'b11) begin // IDLE in Snake_Top
+        current_state <= CONTEST_STATE; // Contest behavior in DragonHead
+    end
+    else if (States == 2'b01) begin // HEAL in Snake_Top
+        current_state <= SCATTER_STATE; // Scatter behavior in DragonHead
+    end
+    else if (States == 2'b10) begin // HIT in Snake_Top
+        current_state <= RETREAT_STATE; // Retreat behavior in DragonHead
+    end
+    else begin
+        current_state <= CONTEST_STATE; // Default or fallback state
+    end
+
+            // FSM for different states
+ case (current_state)
+        CONTEST_STATE: begin
+            // Calculate Manhattan distances
+            distance_dragon_sheep_x <= (dragon_pos[7:4] > sheep_x) ? (dragon_pos[7:4] - sheep_x) : (sheep_x - dragon_pos[7:4]);
+            distance_dragon_sheep_y <= (dragon_pos[3:0] > sheep_y) ? (dragon_pos[3:0] - sheep_y) : (sheep_y - dragon_pos[3:0]);
+            distance_dragon_player_x <= (dragon_pos[7:4] > player_pos[7:4]) ? (dragon_pos[7:4] - player_pos[7:4]) : (player_pos[3:0] - dragon_pos[3:0]);
+            distance_dragon_player_y <= (dragon_pos[3:0] > player_pos[3:0]) ? (dragon_pos[3:0] - player_pos[3:0]) : (player_pos[3:0] - dragon_pos[3:0]);
+            distance_dragon_sheep <= distance_dragon_sheep_x + distance_dragon_sheep_y;
+            distance_dragon_player <= distance_dragon_player_x + distance_dragon_player_y;
+
+            // Select target based on proximity
+            SelectTarget <= (distance_dragon_player < distance_dragon_sheep) ? player_pos : sheep_pos;
+
+            // Check if the target has been reached
+            if (dragon_pos == SelectTarget) begin
+               next_state <= CONTEST_STATE; // Change state when the target is reached
+            
+            end
+        end
+
+        RETREAT_STATE: begin
+            // Select random corner when retreating
+            random_corner = movement_counter[1:0];
+            case (random_corner)
+                2'b00: SelectTarget <= 8'b0000_1111; // top_left
+                2'b01: SelectTarget <= 8'b1111_1111; // top_right
+                2'b10: SelectTarget <= 8'b0000_0000; // bottom_left
+                2'b11: SelectTarget <= 8'b1111_0000; // bottom_right
+            endcase
+
+            // Check if the target has been reached
+            if (dragon_pos == SelectTarget) begin
+                next_state <= CONTEST_STATE; // Change state when the target is reached
+            end
+            if else begin (sheep)
+             next_state <= chase;
+            end
+            else begin
+                next_state <= RETREAT_STATE; // Stay in the same state until target is reached
+            end
+        end
+
+        SCATTER_STATE: begin
+            // Random target for scatter
+            if (dragon_win) begin
+                SelectTarget <= {movement_counter[7:4], movement_counter[3:0]}; // Random location
+            end
+
+            // Check if the target has been reached
+            if (dragon_pos == SelectTarget) begin
+                next_state <= IDLE; // Change state when the target is reached
+            end else begin
+                next_state <= SCATTER_STATE; // Stay in the same state until target is reached
+            end
+        end
+
+        default: begin
+            next_state <= CONTEST_STATE;
+        end
+
+    endcase
+
+
+
+  
+
+     // Store the current position before updating , used later
+        dragon_x <= dragon_pos[7:4];
+        dragon_y <= dragon_pos[3:0];
+
+        // Calculate the differences between dragon and player
+        dx <= player_pos[7:4] - dragon_x;
+        dy <= player_pos[3:0] - dragon_y ;
+        sx <= (dragon_x < player_pos[7:4]) ? 1 : -1; // Direction in axis
+        sy <= (dragon_y < player_pos[3:0]) ? 1 : -1; 
+
+        // Move the dragon towards the player if it's not adjacent
+        if (dx >= 1 || dy >= 1) begin
+        // Update dragon position only if it actually moves , keeps flickering
+            if (dx >= dy) begin //prioritize movement
+                dragon_x <= dragon_x + sx;
+                dragon_y <= dragon_y;
+            end else begin
+                dragon_x <= dragon_x;
+                dragon_y <= dragon_y + sy;
+            end
+
+            if (dragon_x > dragon_pos[7:4])
+              dragon_direction <= 2'b01;   // Move right
+            else if (dragon_x < dragon_pos[7:4])
+              dragon_direction <= 2'b11;   // Move left
+            else if (dragon_y > dragon_pos[3:0])
+              dragon_direction <= 2'b10;   // Move down
+            else if (dragon_y < dragon_pos[3:0])
+              dragon_direction <= 2'b00;   // Move up
+
+            // Update the next location
+            dragon_pos <= {dragon_x, dragon_y};
+
+        end else begin
+            // stop moving when the dragon is adjacent to the player 
+            dragon_x <= dragon_x; 
+            dragon_y <= dragon_y; 
+        end
+  end else begin
+    dragon_x <= 0;
+    dragon_y <= 0;
+    movement_counter <= 0;
+    dragon_pos <= 0;
+    dx <= 0; //difference
+    dy <= 0;
+    sx <= 0; //figuring out direction in axis
+    sy <= 0;
+  end
+end
+
+endmodule

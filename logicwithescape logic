@@ -61,7 +61,7 @@ reg [7:0] player_pos;
 reg [7:0] sheep_pos;
 reg [1:0] next_state;
 
-input States;
+input Collisions;
 
     always @(posedge frame_end) begin
         current_state <= next_state;      // Update state
@@ -78,20 +78,16 @@ always @(posedge clk) begin
 
  // Update player and sheep locations for the FSM
 
-
-    // Check the current States and choose the corresponding case
-    if (States == 2'b11) begin // IDLE in Snake_Top
+//2'b00 collison with sheep
+//2'b01 collision with player
+    // Check the current Collisions and choose the corresponding case
+    if (Collisions == 2'b00) begin // IDLE in Snake_Top
         current_state <= CONTEST_STATE; // Contest behavior in DragonHead
     end
-    else if (States == 2'b01) begin // HEAL in Snake_Top
+    else if (Collisions == 2'b01) begin // HEAL in Snake_Top
         current_state <= SCATTER_STATE; // Scatter behavior in DragonHead
     end
-    else if (States == 2'b10) begin // HIT in Snake_Top
-        current_state <= RETREAT_STATE; // Retreat behavior in DragonHead
-    end
-    else begin
-        current_state <= CONTEST_STATE; // Default or fallback state
-    end
+
 
             // FSM for different states
  case (current_state)
@@ -136,23 +132,7 @@ always @(posedge clk) begin
             end
         end
 
-        SCATTER_STATE: begin
-            // Random target for scatter
-            if (dragon_win) begin
-                SelectTarget <= {movement_counter[7:4], movement_counter[3:0]}; // Random location
-            end
 
-            // Check if the target has been reached
-            if (dragon_pos == SelectTarget) begin
-                next_state <= IDLE; // Change state when the target is reached
-            end else begin
-                next_state <= SCATTER_STATE; // Stay in the same state until target is reached
-            end
-        end
-
-        default: begin
-            next_state <= CONTEST_STATE;
-        end
 
     endcase
 

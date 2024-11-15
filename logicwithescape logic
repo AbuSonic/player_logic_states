@@ -127,28 +127,28 @@ ESCAPE: begin
 if (closest_corner == 2'b00) //top left
         case (RNG[1:0])
             2'b00: target_pos <= 8'b1111_0000; //top right
-            2'b01: target_pos <= 8'b0000_1111; // bottom left
+            2'b01: target_pos <= 8'bb0000_1111; // bottom left
             2'b10: target_pos <= 8'b1111_1111; // bottom right
             2'b11: target_pos <= 8'b1111_1111; // bottom right
         endcase
 if (closest_corner == 2'b01) // top right
         case (RNG[1:0])
-            2'b00: target_pos <= 8'0000_0000; //top left
+            2'b00: target_pos <= 8'b0000_0000; //top left
             2'b01: target_pos <= 8'b0000_1111; // bottom left
             2'b10: target_pos <= 8'b0000_1111; // bottom left
             2'b11: target_pos <= 8'b1111_1111; // bottom right
         endcase
 if (closest_corner == 2'b10) // bottom left
         case (RNG[1:0])
-            2'b00: target_pos <= 8'0000_0000; //top left
+            2'b00: target_pos <= 8'b0000_0000; //top left
             2'b01: target_pos <= 8'b1111_0000; // top right
             2'b10: target_pos <= 8'b1111_0000; // top right
             2'b11: target_pos <= 8'b1111_1111; // bottom right
         endcase
 if (closest_corner == 2'11) // bottom right
         case (RNG[1:0])
-            2'b00: target_pos <= 8'0000_0000; //top left
-            2'b10: target_pos <= 8'0000_0000; //top left
+            2'b00: target_pos <= 8'b0000_0000; //top left
+            2'b10: target_pos <= 8'b0000_0000; //top left
             2'b01: target_pos <= 8'b0000_1111; // bottom left
             2'b11: target_pos <= 8'b1111_0000; // top right
         endcase

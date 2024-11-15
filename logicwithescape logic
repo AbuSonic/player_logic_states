@@ -40,7 +40,7 @@ reg [1:0] NextDirection;
 reg [3:0] dragon_head_x;
 reg [3:0] dragon_head_y;
 //reg [3:0] player_pos[7:4][3:0] player_y;
-reg [3:0] sheep_x;
+/*reg [3:0] sheep_x;
 reg [3:0] sheep_y;
 reg [3:0] distance_dragon_sheep_x;
 reg [3:0] distance_dragon_sheep_y;
@@ -49,19 +49,32 @@ reg [3:0] distance_dragon_player_y;
 reg [4:0] distance_dragon_sheep;
 reg [4:0] distance_dragon_player;
 reg [1:0] random_corner ;
-
+*/
 reg [1:0] current_state;
 
-localparam CONTEST_STATE = 2'b00; 
-localparam RETREAT_STATE = 2'b01; 
-localparam SCATTER_STATE = 2'b10;
+localparam CHASE  = 1'b1; 
+localparam ESCAPE = 1'b0; 
+localparam PLAYER = 1'b1;
+localparam SHEEP  = 1'b0;
 
 reg [7:0] SelectTarget; // Target location based on state
 reg [7:0] player_pos;
 reg [7:0] sheep_pos;
 reg [1:0] next_state;
 
-input Collisions;
+reg [7:0] target_pos;
+
+input Collision;
+
+
+
+
+input RNG;
+
+    initial begin
+        target_pos = player_pos;
+        current_state = CHASE;
+    end
 
     always @(posedge frame_end) begin
         current_state <= next_state;      // Update state
@@ -69,75 +82,115 @@ input Collisions;
     end
 
 
-// Movement logic , uses bresenhams line algorithm
 always @(posedge clk) begin
     if (movement_counter < 6'd10) begin
         movement_counter <= movement_counter + 1;
     end else begin
         movement_counter <= 0;
 
- // Update player and sheep locations for the FSM
 
 //2'b00 collison with sheep
-//2'b01 collision with player
-    // Check the current Collisions and choose the corresponding case
-    if (Collisions == 2'b00) begin // IDLE in Snake_Top
-        current_state <= CONTEST_STATE; // Contest behavior in DragonHead
+//2'b01 collision with sword
+//2'b10 collision with palyer
+
+    if (Collision == 2'b00) begin 
+        current_state <= CHASE; // Contest behavior in DragonHead
     end
-    else if (Collisions == 2'b01) begin // HEAL in Snake_Top
-        current_state <= SCATTER_STATE; // Scatter behavior in DragonHead
+    else if (Collision == 2'b01 || Collision == 2'b10) begin 
+        current_state <= ESCAPE; // Scatter behavior in DragonHead
     end
 
-
-            // FSM for different states
+//fsm 
  case (current_state)
-        CONTEST_STATE: begin
-            // Calculate Manhattan distances
-            distance_dragon_sheep_x <= (dragon_pos[7:4] > sheep_x) ? (dragon_pos[7:4] - sheep_x) : (sheep_x - dragon_pos[7:4]);
-            distance_dragon_sheep_y <= (dragon_pos[3:0] > sheep_y) ? (dragon_pos[3:0] - sheep_y) : (sheep_y - dragon_pos[3:0]);
-            distance_dragon_player_x <= (dragon_pos[7:4] > player_pos[7:4]) ? (dragon_pos[7:4] - player_pos[7:4]) : (player_pos[3:0] - dragon_pos[3:0]);
-            distance_dragon_player_y <= (dragon_pos[3:0] > player_pos[3:0]) ? (dragon_pos[3:0] - player_pos[3:0]) : (player_pos[3:0] - dragon_pos[3:0]);
-            distance_dragon_sheep <= distance_dragon_sheep_x + distance_dragon_sheep_y;
-            distance_dragon_player <= distance_dragon_player_x + distance_dragon_player_y;
+        CHASE: begin
 
-            // Select target based on proximity
-            SelectTarget <= (distance_dragon_player < distance_dragon_sheep) ? player_pos : sheep_pos;
+            target_pos <= (RNG[0] == 1) ? player_pos : sheep_pos;
 
             // Check if the target has been reached
-            if (dragon_pos == SelectTarget) begin
-               next_state <= CONTEST_STATE; // Change state when the target is reached
+            if (dragon_pos == target_pos) begin
+               next_state <= CHASE; // Change state when the target is reached
             
             end
+
         end
 
-        RETREAT_STATE: begin
+        ESCAPE: begin
             // Select random corner when retreating
-            random_corner = movement_counter[1:0];
+            random_corner <= RNG[1:0];
             case (random_corner)
-                2'b00: SelectTarget <= 8'b0000_1111; // top_left
-                2'b01: SelectTarget <= 8'b1111_1111; // top_right
-                2'b10: SelectTarget <= 8'b0000_0000; // bottom_left
-                2'b11: SelectTarget <= 8'b1111_0000; // bottom_right
+                2'b00: target_pos <= 8'b0000_1111; // bottom left
+                2'b01: target_pos <= 8'b1111_1111; // bottom right
+                2'b10: target_pos <= 8'b0000_0000; // top left
+                2'b11: target_pos <= 8'b1111_0000; // top right
             endcase
 
             // Check if the target has been reached
-            if (dragon_pos == SelectTarget) begin
-                next_state <= CONTEST_STATE; // Change state when the target is reached
-            end
-            if else begin (sheep)
-             next_state <= chase;
-            end
-            else begin
-                next_state <= RETREAT_STATE; // Stay in the same state until target is reached
-            end
+            if (dragon_pos == target_pos) begin
+                next_state <= CHASE; // Change state when the target is reached
+
+        end
         end
 
+/*ESCAPE: begin
+    reg [4:0] dist_top_left;
+    reg [4:0] dist_top_right;
+    reg [4:0] dist_bottom_left;
+    reg [4:0] dist_bottom_right;
+    reg [1:0] closest_corner;
+    // Determine the closest corner based on pre-calculated distances
+        dist_top_left     = dragon_x + dragon_y;                     // Top-left corner (0, 0)
+        dist_top_right    = (4'b1111 - dragon_x) + dragon_y;           // Top-right corner (15, 0)
+        dist_bottom_left  = dragon_x + (4'b1111 - dragon_y);           // Bottom-left corner (0, 15)
+        dist_bottom_right = (4'b1111 - dragon_x) + (4'b1111 - dragon_y); // Bottom-right corner (15, 15)
+     // Determine which corner is closest
+        if (dist_top_left < dist_top_right && dist_top_left < dist_bottom_left && dist_top_left < dist_bottom_right)
+            closest_corner = 2'b00; // Top Left
+        else if (dist_top_right < dist_top_left && dist_top_right < dist_bottom_left && dist_top_right < dist_bottom_right)
+            closest_corner = 2'b01; // Top Right
+        else if (dist_bottom_left < dist_top_left && dist_bottom_left < dist_top_right && dist_bottom_left < dist_bottom_right)
+            closest_corner = 2'b10; // Bottom Left
+        else
+            closest_corner = 2'b11; // Bottom Right
+
+if (closest_corner == 00)
+        case (RNG[1:0])
+            2'b01: SelectTarget = (closest_corner == 2'b01) ? 8'b0000_0000 : 8'b1111_1111; // Bottom Left if Top Right is closest
+            2'b10: SelectTarget = (closest_corner == 2'b10) ? 8'b1111_0000 : 8'b0000_0000; // Bottom Right if Bottom Left is closest
+            2'b11: SelectTarget = (closest_corner == 2'b11) ? 8'b0000_1111 : 8'b1111_0000; // Top Left if Bottom Right is closest
+        endcase
+if (closest_corner == 01)
+        case (RNG[1:0])
+            2'b00: SelectTarget = (closest_corner == 2'b00) ? 8'b1111_1111 : 8'b0000_1111; // Top Right if Top Left is closest
+            2'b10: SelectTarget = (closest_corner == 2'b10) ? 8'b1111_0000 : 8'b0000_0000; // Bottom Right if Bottom Left is closest
+            2'b11: SelectTarget = (closest_corner == 2'b11) ? 8'b0000_1111 : 8'b1111_0000; // Top Left if Bottom Right is closest
+        endcase
+if (closest_corner == 10)
+        case (RNG[1:0])
+            2'b00: SelectTarget = (closest_corner == 2'b00) ? 8'b1111_1111 : 8'b0000_1111; // Top Right if Top Left is closest
+            2'b01: SelectTarget = (closest_corner == 2'b01) ? 8'b0000_0000 : 8'b1111_1111; // Bottom Left if Top Right is closest
+            2'b11: SelectTarget = (closest_corner == 2'b11) ? 8'b0000_1111 : 8'b1111_0000; // Top Left if Bottom Right is closest
+        endcase
+if (closest_corner == 11)
+        case (RNG[1:0])
+            2'b00: SelectTarget = (closest_corner == 2'b00) ? 8'b1111_1111 : 8'b0000_1111; // Top Right if Top Left is closest            
+            2'b01: SelectTarget = (closest_corner == 2'b01) ? 8'b0000_0000 : 8'b1111_1111; // Bottom Left if Top Right is closest
+            2'b10: SelectTarget = (closest_corner == 2'b10) ? 8'b1111_0000 : 8'b0000_0000; // Bottom Right if Bottom Left is closest
+        endcase
 
 
-    endcase
 
 
+    // Transition when the target is reached
+    if (dragon_pos == SelectTarget) begin
+        next_state <= CONTEST_STATE;
+    end else begin
+        next_state <= ESCAPE;
+    end
+end
+*/
+ endcase
 
+// Movement logic , uses bresenhams line algorithm
   
 
      // Store the current position before updating , used later
@@ -145,10 +198,10 @@ always @(posedge clk) begin
         dragon_y <= dragon_pos[3:0];
 
         // Calculate the differences between dragon and player
-        dx <= player_pos[7:4] - dragon_x;
-        dy <= player_pos[3:0] - dragon_y ;
-        sx <= (dragon_x < player_pos[7:4]) ? 1 : -1; // Direction in axis
-        sy <= (dragon_y < player_pos[3:0]) ? 1 : -1; 
+        dx <= target_pos[7:4] - dragon_x;
+        dy <= target_pos[3:0] - dragon_y ;
+        sx <= (dragon_x < target_pos[7:4]) ? 1 : -1; // Direction in axis
+        sy <= (dragon_y < target_pos[3:0]) ? 1 : -1; 
 
         // Move the dragon towards the player if it's not adjacent
         if (dx >= 1 || dy >= 1) begin

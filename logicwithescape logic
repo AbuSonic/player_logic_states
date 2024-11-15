@@ -41,16 +41,7 @@ reg [3:0] dragon_head_x;
 reg [3:0] dragon_head_y;
 reg [3:0] player_pos;
 reg [3:0] sheep_pos;
-/*reg [3:0] sheep_x;
-reg [3:0] sheep_y;
-reg [3:0] distance_dragon_sheep_x;
-reg [3:0] distance_dragon_sheep_y;
-reg [3:0] distance_dragon_player_x;
-reg [3:0] distance_dragon_player_y;
-reg [4:0] distance_dragon_sheep;
-reg [4:0] distance_dragon_player;
-reg [1:0] random_corner ;
-*/
+
 reg [1:0] current_state;
 
 localparam CHASE  = 1'b1; 

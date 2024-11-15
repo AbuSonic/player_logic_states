@@ -39,7 +39,8 @@ reg [1:0] NextDirection;
 
 reg [3:0] dragon_head_x;
 reg [3:0] dragon_head_y;
-//reg [3:0] player_pos[7:4][3:0] player_y;
+reg [3:0] player_pos;
+reg [3:0] sheep_pos;
 /*reg [3:0] sheep_x;
 reg [3:0] sheep_y;
 reg [3:0] distance_dragon_sheep_x;
@@ -114,24 +115,7 @@ always @(posedge clk) begin
 
         end
 
-        ESCAPE: begin
-            // Select random corner when retreating
-            random_corner <= RNG[1:0];
-            case (random_corner)
-                2'b00: target_pos <= 8'b0000_1111; // bottom left
-                2'b01: target_pos <= 8'b1111_1111; // bottom right
-                2'b10: target_pos <= 8'b0000_0000; // top left
-                2'b11: target_pos <= 8'b1111_0000; // top right
-            endcase
-
-            // Check if the target has been reached
-            if (dragon_pos == target_pos) begin
-                next_state <= CHASE; // Change state when the target is reached
-
-        end
-        end
-
-/*ESCAPE: begin
+ESCAPE: begin
     reg [4:0] dist_top_left;
     reg [4:0] dist_top_right;
     reg [4:0] dist_bottom_left;
@@ -187,7 +171,7 @@ if (closest_corner == 11)
         next_state <= ESCAPE;
     end
 end
-*/
+
  endcase
 
 // Movement logic , uses bresenhams line algorithm

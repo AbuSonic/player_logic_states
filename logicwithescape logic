@@ -116,8 +116,8 @@ ESCAPE: begin
     // Determine the closest corner based on pre-calculated distances
         dist_top_left     = dragon_x + dragon_y;                     // Top-left corner (0, 0)
         dist_top_right    = (4'b1111 - dragon_x) + dragon_y;           // Top-right corner (15, 0)
-        dist_bottom_left  = dragon_x + (4'b1111 - dragon_y);           // Bottom-left corner (0, 15)
-        dist_bottom_right = (4'b1111 - dragon_x) + (4'b1111 - dragon_y); // Bottom-right corner (15, 15)
+        dist_bottom_left  = dragon_x + (4'b1011 - dragon_y);           // Bottom-left corner (0, 11)
+        dist_bottom_right = (4'b1111 - dragon_x) + (4'b1011 - dragon_y); // Bottom-right corner (15, 11)
      // Determine which corner is closest
         if (dist_top_left < dist_top_right && dist_top_left < dist_bottom_left && dist_top_left < dist_bottom_right)
             closest_corner = 2'b00; // Top Left
@@ -131,30 +131,30 @@ ESCAPE: begin
 if (closest_corner == 2'b00) //top left
         case (RNG[1:0])
             2'b00: target_pos <= 8'b1111_0000; //top right
-            2'b01: target_pos <= 8'b0000_1111; // bottom left
-            2'b10: target_pos <= 8'b1111_1111; // bottom right
-            2'b11: target_pos <= 8'b1111_1111; // bottom right
+            2'b01: target_pos <= 8'b0000_1011; // bottom left
+            2'b10: target_pos <= 8'b1111_1011; // bottom right
+            2'b11: target_pos <= 8'b1111_1011; // bottom right
         endcase
 if (closest_corner == 2'b01) // top right
         case (RNG[1:0])
             2'b00: target_pos <= 8'b0000_0000; //top left
-            2'b01: target_pos <= 8'b0000_1111; // bottom left
-            2'b10: target_pos <= 8'b0000_1111; // bottom left
-            2'b11: target_pos <= 8'b1111_1111; // bottom right
+            2'b01: target_pos <= 8'b0000_1011; // bottom left
+            2'b10: target_pos <= 8'b0000_1011; // bottom left
+            2'b11: target_pos <= 8'b1111_1011; // bottom right
         endcase
 if (closest_corner == 2'b10) // bottom left
         case (RNG[1:0])
             2'b00: target_pos <= 8'b0000_0000; //top left
             2'b01: target_pos <= 8'b1111_0000; // top right
             2'b10: target_pos <= 8'b1111_0000; // top right
-            2'b11: target_pos <= 8'b1111_1111; // bottom right
+            2'b11: target_pos <= 8'b1111_1011; // bottom right
         endcase
 if (closest_corner == 2'b11) // bottom right
         case (RNG[1:0])
             2'b00: target_pos <= 8'b0000_0000; //top left
             2'b10: target_pos <= 8'b0000_0000; //top left
-            2'b01: target_pos <= 8'b0000_1111; // bottom left
-            2'b11: target_pos <= 8'b1111_0000; // top right
+            2'b01: target_pos <= 8'b0000_1011; // bottom left
+            2'b11: target_pos <= 8'b1111_1011; // top right
         endcase
 
 

@@ -72,6 +72,10 @@ input RNG;
 
 
 always @(posedge clk) begin
+    if (~reset)begin
+    pre_vsync <= vsync;
+    if(pre_vsync != vsync && pre_vsync == 0)begin
+      
     if (movement_counter < 6'd10) begin
         movement_counter <= movement_counter + 1;
     end else begin
@@ -127,7 +131,7 @@ ESCAPE: begin
 if (closest_corner == 2'b00) //top left
         case (RNG[1:0])
             2'b00: target_pos <= 8'b1111_0000; //top right
-            2'b01: target_pos <= 8'bb0000_1111; // bottom left
+            2'b01: target_pos <= 8'b0000_1111; // bottom left
             2'b10: target_pos <= 8'b1111_1111; // bottom right
             2'b11: target_pos <= 8'b1111_1111; // bottom right
         endcase
@@ -145,7 +149,7 @@ if (closest_corner == 2'b10) // bottom left
             2'b10: target_pos <= 8'b1111_0000; // top right
             2'b11: target_pos <= 8'b1111_1111; // bottom right
         endcase
-if (closest_corner == 2'11) // bottom right
+if (closest_corner == 2'b11) // bottom right
         case (RNG[1:0])
             2'b00: target_pos <= 8'b0000_0000; //top left
             2'b10: target_pos <= 8'b0000_0000; //top left
@@ -207,6 +211,8 @@ end
             dragon_x <= dragon_x; 
             dragon_y <= dragon_y; 
         end
+    end
+    end
   end else begin
     dragon_x <= 0;
     dragon_y <= 0;
